@@ -31,7 +31,8 @@ const emptyContext: ContextGrounding = {
 
 export default function ContextGroundingForm({ onSave, onChange, initialContext }: ContextGroundingFormProps) {
   const [form, setForm] = useState<ContextGrounding>(initialContext || emptyContext);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleChange = (field: keyof ContextGrounding, value: string | number) => {
     const updated = { ...form, [field]: value };
@@ -53,11 +54,11 @@ export default function ContextGroundingForm({ onSave, onChange, initialContext 
   };
 
   const argLabels: Record<keyof ArgumentStructure, string> = {
-    hook: '1. Opening Hook / Tension',
-    problem: '2. Problem / Insight',
-    evidence: '3. Evidence / Data',
-    solution: '4. Solution / Reframe',
-    cta: '5. Call to Action',
+    hook: '1. Hook',
+    problem: '2. Problem',
+    evidence: '3. Evidence',
+    solution: '4. Solution',
+    cta: '5. CTA',
   };
 
   return (
@@ -66,7 +67,14 @@ export default function ContextGroundingForm({ onSave, onChange, initialContext 
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left"
       >
-        <h2 className="text-lg font-semibold text-primary">Context Grounding</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-primary">Context</h2>
+          {form.content_type && (
+            <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-xs rounded">
+              {form.content_type} • {form.platform}
+            </span>
+          )}
+        </div>
         <svg
           className={`w-5 h-5 text-text-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`}
           fill="none"
@@ -107,11 +115,11 @@ export default function ContextGroundingForm({ onSave, onChange, initialContext 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Goal</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Goal *</label>
             <textarea
               value={form.goal}
               onChange={(e) => handleChange('goal', e.target.value)}
-              placeholder="What should the reader do, feel, or believe after reading this?"
+              placeholder="What should the reader do, feel, or believe after reading?"
               rows={2}
               className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
             />
@@ -119,9 +127,10 @@ export default function ContextGroundingForm({ onSave, onChange, initialContext 
 
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">
-              Word Count Target: {form.word_count_min} - {form.word_count_max} words
+              Word Count: {form.word_count_min} - {form.word_count_max}
             </label>
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-text-secondary">100</span>
               <input
                 type="range"
                 min={100}
@@ -140,87 +149,99 @@ export default function ContextGroundingForm({ onSave, onChange, initialContext 
                 onChange={(e) => handleChange('word_count_max', parseInt(e.target.value))}
                 className="flex-1"
               />
+              <span className="text-xs text-text-secondary">5000</span>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Reader Profile</label>
-            <textarea
-              value={form.reader_profile}
-              onChange={(e) => handleChange('reader_profile', e.target.value)}
-              placeholder="Who specifically is reading this? What do they already know?"
-              rows={2}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Reader's Current Belief</label>
-            <textarea
-              value={form.reader_belief}
-              onChange={(e) => handleChange('reader_belief', e.target.value)}
-              placeholder="What do they think right now that this piece must change or confirm?"
-              rows={2}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Key Objection to Address</label>
-            <textarea
-              value={form.key_objection}
-              onChange={(e) => handleChange('key_objection', e.target.value)}
-              placeholder="What will they push back on?"
-              rows={2}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
-            />
-          </div>
-
-          <div className="border-t border-border pt-4">
-            <h3 className="text-sm font-semibold text-primary mb-3">Argument Structure</h3>
-            <div className="space-y-3">
-              {(Object.keys(argLabels) as Array<keyof ArgumentStructure>).map((key) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">
-                    {argLabels[key]}
-                  </label>
-                  <textarea
-                    value={form.argument_structure[key]}
-                    onChange={(e) => handleArgChange(key, e.target.value)}
-                    rows={2}
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
-                    placeholder={`Enter ${key}...`}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Tone Notes</label>
-            <textarea
-              value={form.tone_notes}
-              onChange={(e) => handleChange('tone_notes', e.target.value)}
-              placeholder="Any specific tonal guidance for this piece"
-              rows={2}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Avoid</label>
-            <textarea
-              value={form.avoid}
-              onChange={(e) => handleChange('avoid', e.target.value)}
-              placeholder="Specific phrases, tones, or structures to skip"
-              rows={2}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
-            />
           </div>
 
           <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="text-sm text-secondary hover:underline"
+          >
+            {showAdvanced ? 'Hide' : 'Show'} advanced options
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-4 pt-2 border-t border-border">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Reader Profile</label>
+                <textarea
+                  value={form.reader_profile}
+                  onChange={(e) => handleChange('reader_profile', e.target.value)}
+                  placeholder="Who is reading this?"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Reader's Current Belief</label>
+                <textarea
+                  value={form.reader_belief}
+                  onChange={(e) => handleChange('reader_belief', e.target.value)}
+                  placeholder="What do they think now?"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Key Objection</label>
+                <textarea
+                  value={form.key_objection}
+                  onChange={(e) => handleChange('key_objection', e.target.value)}
+                  placeholder="What will they push back on?"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
+                />
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Argument Structure</h3>
+                <div className="space-y-2">
+                  {(Object.keys(argLabels) as Array<keyof ArgumentStructure>).map((key) => (
+                    <div key={key}>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                        {argLabels[key]}
+                      </label>
+                      <textarea
+                        value={form.argument_structure[key]}
+                        onChange={(e) => handleArgChange(key, e.target.value)}
+                        rows={1}
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
+                        placeholder={`Enter ${key}...`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Tone Notes</label>
+                <textarea
+                  value={form.tone_notes}
+                  onChange={(e) => handleChange('tone_notes', e.target.value)}
+                  placeholder="Any tonal guidance?"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Avoid</label>
+                <textarea
+                  value={form.avoid}
+                  onChange={(e) => handleChange('avoid', e.target.value)}
+                  placeholder="What to avoid?"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <button
             onClick={handleSave}
-            className="w-full px-4 py-2 bg-secondary text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+            className="w-full px-4 py-2 bg-secondary text-white rounded-lg font-medium hover:bg-blue-600"
           >
             Save Context
           </button>
