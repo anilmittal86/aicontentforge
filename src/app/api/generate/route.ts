@@ -33,51 +33,65 @@ export async function POST(request: NextRequest) {
   try {
     const { brand, context, keywords }: GenerateRequest = await request.json();
 
-    if (!brand || !context) {
+    if (!context?.goal) {
       return NextResponse.json(
-        { error: 'Brand and Context grounding are required' },
+        { error: 'Please enter a Goal in Context settings.' },
         { status: 400 }
       );
     }
+
+    const effectiveBrand = brand || {
+      brand_name: '',
+      what_we_do: '',
+      target_reader: '',
+      our_differentiator: '',
+      voice: '',
+      we_sound_like: '',
+      we_never_say: '',
+      proprietary_terms: '',
+    };
+
+    const effectiveContext = context || {
+      content_type: 'Blog post',
+      platform: 'Company blog',
+      goal: '',
+      word_count_min: 800,
+      word_count_max: 1500,
+      reader_profile: '',
+      reader_belief: '',
+      key_objection: '',
+      argument_structure: { hook: '', problem: '', evidence: '', solution: '', cta: '' },
+      tone_notes: '',
+      avoid: '',
+    };
 
     const geminiKey = process.env.GEMINI_API_KEY;
     const perplexityKey = process.env.PERPLEXITY_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
 
     const primaryKeywords = keywords
-      .filter(k => k.priority === 'primary')
+      ?.filter(k => k.priority === 'primary')
       .map(k => k.name)
-      .join(', ');
+      .join(', ') || '';
     
     const secondaryKeywords = keywords
-      .filter(k => k.priority === 'secondary')
+      ?.filter(k => k.priority === 'secondary')
       .map(k => k.name)
-      .join(', ');
+      .join(', ') || '';
 
     const systemPrompt = `You are an expert content writer specializing in data-rich, well-researched content. 
 
 BRAND GROUNDING:
-- Brand: ${brand.brand_name}
-- What we do: ${brand.what_we_do}
-- Target reader: ${brand.target_reader}
-- Differentiator: ${brand.our_differentiator}
-- Voice: ${brand.voice}
-- We sound like: ${brand.we_sound_like}
-- We never say: ${brand.we_never_say}
-- Proprietary terms: ${brand.proprietary_terms}
+- Brand: ${effectiveBrand.brand_name || 'Not specified'}
+- What we do: ${effectiveBrand.what_we_do || 'Not specified'}
+- Target reader: ${effectiveBrand.target_reader || 'Not specified'}
+- Differentiator: ${effectiveBrand.our_differentiator || 'Not specified'}
+- Voice: ${effectiveBrand.voice || 'Not specified'}
+- We sound like: ${effectiveBrand.we_sound_like || 'Not specified'}
+- We never say: ${effectiveBrand.we_never_say || 'Not specified'}
+- Proprietary terms: ${effectiveBrand.proprietary_terms || 'Not specified'}
 
 CONTEXT:
-- Content type: ${context.content_type}
-- Platform: ${context.platform}
-- Goal: ${context.goal}
-- Word count: ${context.word_count_min}-${context.word_count_max}
-- Reader profile: ${context.reader_profile}
-- Current belief: ${context.reader_belief}
-- Key objection: ${context.key_objection}
-- Argument structure: ${Object.values(context.argument_structure).join(' | ')}
-- Tone notes: ${context.tone_notes}
-- Avoid: ${context.avoid}
-
 KEYWORDS: Primary: ${primaryKeywords || 'None specified'}. Secondary: ${secondaryKeywords || 'None specified'}
 
 IMPORTANT INSTRUCTIONS:
@@ -88,17 +102,17 @@ IMPORTANT INSTRUCTIONS:
 5. Structure content with clear headings and sections
 6. Include a "Sources" section at the end listing all references with URLs
 7. Write in the brand's voice as specified
-8. Target approximately ${context.word_count_min}-${context.word_count_max} words
+8. Target approximately ${effectiveContext.word_count_min || 800}-${effectiveContext.word_count_max || 1500} words
 9. Address the reader's current belief and key objection
 10. Follow the argument structure provided`;
 
-    const userPrompt = `Write a ${context.content_type.toLowerCase()} for ${context.platform}. 
+    const userPrompt = `Write a ${effectiveContext.content_type?.toLowerCase() || 'blog post'} for ${effectiveContext.platform || 'Company blog'}. 
 
-Topic should cover: ${context.goal}
+Topic should cover: ${effectiveContext.goal}
 
 The content should:
-- Start with a compelling hook about ${context.argument_structure?.hook || 'the main topic'}
-- Present the problem/insight: ${context.argument_structure?.problem || 'the key challenge'}
+- Start with a compelling hook about ${effectiveContext.argument_structure?.hook || 'the main topic'}
+- Present the problem/insight: ${effectiveContext.argument_structure?.problem || 'the key challenge'}
 - Include evidence and data supporting the points
 - Present the solution with specific recommendations
 - End with a clear call to action
@@ -108,7 +122,7 @@ Make sure to naturally incorporate the keywords: ${primaryKeywords || 'as approp
     let content = '';
     let sources: Source[] = [];
     let title = '';
-    const defaultTitle = `${brand.brand_name} - ${context.content_type}`;
+    const defaultTitle = `${effectiveBrand.brand_name || 'Content'} - ${effectiveContext.content_type || 'Blog post'}`;
 
     if (geminiKey) {
       const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
