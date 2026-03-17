@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { BrandGrounding, ContextGrounding, KeywordTag, GeneratedContent } from '@/types';
 import { storage } from '@/lib/storage';
 
@@ -168,19 +169,16 @@ export default function ContentGenerator({ brand, context, keywords }: ContentGe
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-text-primary mb-1">Generated Content</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={20}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-y font-mono text-sm"
-            />
+            <label className="block text-sm font-medium text-text-primary mb-2">Generated Content</label>
+            <div className="prose prose-sm max-w-none prose-headings:text-primary prose-a:text-secondary prose-a:no-underline hover:prose-a:underline prose-strong:text-primary prose-li:text-text-primary">
+              <ReactMarkdown>{content}</ReactMarkdown>
+            </div>
           </div>
 
           {sources.length > 0 && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <h4 className="text-sm font-medium text-primary mb-2">Sources</h4>
-              <ul className="space-y-1">
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+              <h4 className="text-sm font-semibold text-primary mb-3">Sources</h4>
+              <ul className="space-y-2">
                 {sources.map((source, idx) => (
                   <li key={idx} className="text-sm">
                     <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">
