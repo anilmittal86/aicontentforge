@@ -24,8 +24,8 @@ export default function ContentGenerator({ brand, context, keywords }: ContentGe
   const [savedContents, setSavedContents] = useState<GeneratedContent[]>([]);
 
   const handleGenerate = async () => {
-    if (!brand || !context) {
-      setError('Please fill in both Brand and Context grounding before generating.');
+    if (!context?.goal) {
+      setError('Please enter a Goal in Context settings.');
       return;
     }
 
@@ -114,7 +114,7 @@ export default function ContentGenerator({ brand, context, keywords }: ContentGe
 
         <button
           onClick={handleGenerate}
-          disabled={isGenerating || !brand || !context}
+          disabled={isGenerating || !context?.goal}
           className="w-full px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {isGenerating ? (
