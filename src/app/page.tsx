@@ -6,6 +6,7 @@ import BrandGroundingForm from '@/components/BrandGroundingForm';
 import ContextGroundingForm from '@/components/ContextGroundingForm';
 import KeywordInput from '@/components/KeywordInput';
 import ContentGenerator from '@/components/ContentGenerator';
+import GapAnalysisImport from '@/components/GapAnalysisImport';
 
 export default function Home() {
   const [brand, setBrand] = useState<BrandGrounding | null>(null);
@@ -67,6 +68,19 @@ export default function Home() {
               <KeywordInput 
                 keywords={keywords}
                 onChange={setKeywords}
+              />
+              <GapAnalysisImport 
+                onImport={(data) => {
+                  console.log('Imported gap analysis:', data);
+                  if (data.queries.length > 0) {
+                    const firstQuery = data.queries[0];
+                    setContext(prev => ({
+                      ...prev!,
+                      goal: firstQuery.query,
+                      reader_profile: `People searching for: ${firstQuery.query}`,
+                    }));
+                  }
+                }}
               />
             </div>
             <div className="lg:col-span-2">
