@@ -4,16 +4,9 @@ import { useState } from 'react';
 
 interface GapQuery {
   query: string;
-  missingOn: string;
-  whySkipped: string;
-  recommendedAsset: string;
-  evidence: string;
-  distributionTargets: string[];
 }
 
 interface ImportedData {
-  brand: string;
-  competitors: string[];
   queries: GapQuery[];
 }
 
@@ -25,92 +18,95 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
   const [textInput, setTextInput] = useState('');
   const [importedData, setImportedData] = useState<ImportedData | null>(null);
 
-  const parseText = (text: string): ImportedData | null => {
-    const lines = text.trim().split('\n');
-    const data: ImportedData = {
-      brand: '',
-      competitors: [],
-      queries: [],
-    };
-
-    let currentQuery: Partial<GapQuery> | null = null;
-
+  const parseText = (text: string): ImportedData => {
+    const queries: GapQuery[] = [];
+    
+    // Split by newlines or numbered patterns
+    const lines = text.split(/\n|(?=\d+\.)|(?=\")/);
+    
     for (const line of lines) {
       const trimmed = line.trim();
+      if (!trimmed) continue;
       
-      if (trimmed.startsWith('Missing from') || trimmed.startsWith('is missing from')) {
-        const match = trimmed.match(/^([^,]+)/);
+      // Pattern 1: Lines starting with "Query:" or similar
+      const queryMatch1 = trimmed.match(/^["""]?["""]?["""]?(?:Query|query)[:\s]+(.+)/i);
+      if (queryMatch1) {
+        const query = queryMatch1[1].replace(/["""]/g, '').trim();
+        if (query && query.length > 5) {
+          queries.push({ query });
+          continue;
+        }
+      }
+      
+      // Pattern 2: Quoted strings followed by "— ... shown instead" or "instead"
+      const quoteMatch = trimmed.match(/^["""]([^"""]+)["""]/);
+      if (quoteMatch) {
+        const query = quoteMatch[1].trim();
+        if (query && query.length > 5) {
+          queries.push({ query });
+          continue;
+        }
+      }
+      
+      // Pattern 3: Lines with quotes that contain a question or list-like structure
+      const longQuoteMatch = trimmed.match(/["""]([^"""]+["""])/);
+      if (longQuoteMatch && longQuoteMatch[1].length > 20) {
+        const query = longQuoteMatch[1].replace(/["""]/g, '').trim();
+        if (query && query.length > 10) {
+          queries.push({ query });
+          continue;
+        }
+      }
+      
+      // Pattern 4: Lines that look like search queries (contain: list, best, top, compare, how, what, etc.)
+      const searchQueryPatterns = [
+        /^(list of .+)/i,
+        /^(best .+)/i,
+        /^(top .+)/i,
+        /^(compare .+)/i,
+        /^(alternatives to .+)/i,
+        /^(affordable .+)/i,
+        /^(how to .+)/i,
+        /^(what is .+)/i,
+        /^(which .+)/i,
+        /(.+\?$)/,
+      ];
+      
+      for (const pattern of searchQueryPatterns) {
+        const match = trimmed.match(pattern);
         if (match) {
-          data.brand = match[1].trim();
-        }
-        const compMatch = trimmed.match(/appear instead\.\s*(.+?)\s*Prioritize/);
-        if (compMatch) {
-          data.competitors = compMatch[1].split(' and ').map(c => c.trim()).filter(c => c);
-        }
-      }
-      
-      if (trimmed.startsWith('Query:')) {
-        if (currentQuery?.query) {
-          data.queries.push(currentQuery as GapQuery);
-        }
-        currentQuery = {
-          query: trimmed.replace('Query:', '').trim(),
-          distributionTargets: [],
-        };
-      }
-      
-      if (trimmed.startsWith('Missing on:')) {
-        if (currentQuery) {
-          currentQuery.missingOn = trimmed.replace('Missing on:', '').trim();
-        }
-      }
-      
-      if (trimmed.startsWith('Why AI skipped you:')) {
-        if (currentQuery) {
-          currentQuery.whySkipped = trimmed.replace('Why AI skipped you:', '').trim();
-        }
-      }
-      
-      if (trimmed.startsWith('Recommended asset:')) {
-        if (currentQuery) {
-          currentQuery.recommendedAsset = trimmed.replace('Recommended asset:', '').trim();
-        }
-      }
-      
-      if (trimmed.startsWith('Evidence to strengthen:')) {
-        if (currentQuery) {
-          currentQuery.evidence = trimmed.replace('Evidence to strengthen:', '').trim();
-        }
-      }
-      
-      if (trimmed.startsWith('Distribution targets:')) {
-        if (currentQuery) {
-          currentQuery.distributionTargets = trimmed
-            .replace('Distribution targets:', '')
-            .split(',')
-            .map(t => t.trim())
-            .filter(t => t);
+          const query = match[1].replace(/["""]/g, '').trim();
+          if (query && query.length > 10 && !queries.find(q => q.query === query)) {
+            queries.push({ query });
+            break;
+          }
         }
       }
     }
-
-    if (currentQuery?.query) {
-      data.queries.push(currentQuery as GapQuery);
+    
+    // If no queries found, try splitting by common separators
+    if (queries.length === 0) {
+      // Try splitting by dash, em-dash, or bullet
+      const parts = text.split(/[-–—•]\s*(?=["""?])|(?:\d+\.)\s*/);
+      for (const part of parts) {
+        const cleaned = part.trim().replace(/["""]/g, '').trim();
+        if (cleaned.length > 15 && cleaned.length < 300) {
+          queries.push({ query: cleaned });
+        }
+      }
     }
-
-    if (data.queries.length === 0) {
-      return null;
-    }
-
-    return data;
+    
+    return { queries };
   };
 
   const handleImport = () => {
+    if (!textInput.trim()) return;
+    
     const parsed = parseText(textInput);
-    if (parsed) {
+    if (parsed.queries.length > 0) {
       setImportedData(parsed);
     } else {
-      alert('Could not parse data. Please check the format.');
+      alert('Could not find any queries. Try pasting different format.');
     }
   };
 
@@ -152,9 +148,6 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="text-sm text-text-secondary">
                 <span className="font-medium text-primary">{importedData.queries.length}</span> gap queries found
-                {importedData.competitors.length > 0 && (
-                  <span> • Competing with: {importedData.competitors.join(', ')}</span>
-                )}
               </p>
             </div>
 
