@@ -15,19 +15,21 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create');
 
   const handleSelectQuery = (query: string) => {
-    setContext(prev => ({
-      content_type: prev?.content_type || 'Blog post',
-      platform: prev?.platform || 'Company blog',
+    const defaults = {
+      content_type: 'Blog post',
+      platform: 'Company blog',
       goal: query,
-      word_count_min: prev?.word_count_min || 800,
-      word_count_max: prev?.word_count_max || 1500,
-      reader_profile: prev?.reader_profile || '',
-      reader_belief: prev?.reader_belief || '',
-      key_objection: prev?.key_objection || '',
-      argument_structure: prev?.argument_structure || { hook: '', problem: '', evidence: '', solution: '', cta: '' },
-      tone_notes: prev?.tone_notes || '',
-      avoid: prev?.avoid || '',
-    }));
+      word_count_min: 800,
+      word_count_max: 1500,
+      reader_profile: '',
+      reader_belief: '',
+      key_objection: '',
+      argument_structure: { hook: '', problem: '', evidence: '', solution: '', cta: '' },
+      tone_notes: '',
+      avoid: '',
+    };
+    
+    setContext(prev => prev ? { ...prev, goal: query } : defaults);
   };
 
   return (

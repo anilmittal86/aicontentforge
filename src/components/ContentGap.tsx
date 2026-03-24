@@ -2,12 +2,9 @@
 
 import { useState } from 'react';
 
-interface GapQuery {
+interface ParsedQuery {
   query: string;
-}
-
-interface ImportedData {
-  queries: GapQuery[];
+  competitors: string[];
 }
 
 interface ContentGapProps {
@@ -16,103 +13,93 @@ interface ContentGapProps {
 
 export default function ContentGap({ onSelectQuery }: ContentGapProps) {
   const [textInput, setTextInput] = useState('');
-  const [importedData, setImportedData] = useState<ImportedData | null>(null);
+  const [queries, setQueries] = useState<ParsedQuery[]>([]);
 
-  const parseText = (text: string): ImportedData => {
-    const queries: GapQuery[] = [];
+  const parseText = (text: string): ParsedQuery[] => {
+    const results: ParsedQuery[] = [];
     
-    // Split by newlines or numbered patterns
-    const lines = text.split(/\n|(?=\d+\.)|(?=\")/);
+    // Pattern 1: "Query text" — Competitor shown instead
+    // Matches text between quotes followed by dash and competitors
+    const quoteDashPattern = /"([^"]+)[""]?\s*[-–—]\s*([^,]+?)\s*shown instead/gi;
+    let match;
+    while ((match = quoteDashPattern.exec(text)) !== null) {
+      const query = match[1].trim();
+      const comps = match[2].split(',').map(c => c.trim()).filter(c => c);
+      results.push({ query, competitors: comps });
+    }
     
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      
-      // Pattern 1: Lines starting with "Query:" or similar
-      const queryMatch1 = trimmed.match(/^["""]?["""]?["""]?(?:Query|query)[:\s]+(.+)/i);
-      if (queryMatch1) {
-        const query = queryMatch1[1].replace(/["""]/g, '').trim();
-        if (query && query.length > 5) {
-          queries.push({ query });
-          continue;
+    // Pattern 2: "Query text" — Competitor1, Competitor2 shown instead
+    const multiDashPattern = /"([^"]+)[""]?\s*[-–—]\s*(.+?)\s*shown instead/gi;
+    while ((match = multiDashPattern.exec(text)) !== null) {
+      const query = match[1].trim();
+      const competitorPart = match[2];
+      const comps = competitorPart.split(',').map(c => c.trim()).filter(c => c);
+      if (comps.length > 1 || (results.length === 0 || results[results.length - 1].query !== query)) {
+        if (!results.find(r => r.query === query)) {
+          results.push({ query, competitors: comps });
         }
       }
-      
-      // Pattern 2: Quoted strings followed by "— ... shown instead" or "instead"
-      const quoteMatch = trimmed.match(/^["""]([^"""]+)["""]/);
-      if (quoteMatch) {
-        const query = quoteMatch[1].trim();
-        if (query && query.length > 5) {
-          queries.push({ query });
-          continue;
+    }
+    
+    // Pattern 3: Just quoted text (standalone queries)
+    if (results.length === 0) {
+      const standaloneQuotes = /"([^"]+)[""]?/g;
+      while ((match = standaloneQuotes.exec(text)) !== null) {
+        const query = match[1].trim();
+        if (query.length > 10 && !results.find(r => r.query === query)) {
+          results.push({ query, competitors: [] });
         }
       }
-      
-      // Pattern 3: Lines with quotes that contain a question or list-like structure
-      const longQuoteMatch = trimmed.match(/["""]([^"""]+["""])/);
-      if (longQuoteMatch && longQuoteMatch[1].length > 20) {
-        const query = longQuoteMatch[1].replace(/["""]/g, '').trim();
-        if (query && query.length > 10) {
-          queries.push({ query });
-          continue;
-        }
-      }
-      
-      // Pattern 4: Lines that look like search queries (contain: list, best, top, compare, how, what, etc.)
-      const searchQueryPatterns = [
-        /^(list of .+)/i,
-        /^(best .+)/i,
-        /^(top .+)/i,
-        /^(compare .+)/i,
-        /^(alternatives to .+)/i,
-        /^(affordable .+)/i,
-        /^(how to .+)/i,
-        /^(what is .+)/i,
-        /^(which .+)/i,
-        /(.+\?$)/,
-      ];
-      
-      for (const pattern of searchQueryPatterns) {
-        const match = trimmed.match(pattern);
-        if (match) {
-          const query = match[1].replace(/["""]/g, '').trim();
-          if (query && query.length > 10 && !queries.find(q => q.query === query)) {
-            queries.push({ query });
-            break;
+    }
+    
+    // Pattern 4: Lines starting with common query patterns
+    if (results.length === 0) {
+      const lines = text.split(/\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        const queryPatterns = [
+          /^(List of .+?)[-–—,\s]/i,
+          /^(Best .+?)[-–—,\s]/i,
+          /^(Compare .+?)[-–—,\s]/i,
+          /^(Alternatives to .+?)[-–—,\s]/i,
+          /^(Affordable .+?)[-–—,\s]/i,
+          /^(Top .+?)[-–—,\s]/i,
+        ];
+        
+        for (const pattern of queryPatterns) {
+          const m = trimmed.match(pattern);
+          if (m) {
+            const query = m[1].trim();
+            if (query.length > 10 && !results.find(r => r.query === query)) {
+              results.push({ query, competitors: [] });
+              break;
+            }
           }
         }
       }
     }
     
-    // If no queries found, try splitting by common separators
-    if (queries.length === 0) {
-      // Try splitting by dash, em-dash, or bullet
-      const parts = text.split(/[-–—•]\s*(?=["""?])|(?:\d+\.)\s*/);
-      for (const part of parts) {
-        const cleaned = part.trim().replace(/["""]/g, '').trim();
-        if (cleaned.length > 15 && cleaned.length < 300) {
-          queries.push({ query: cleaned });
-        }
-      }
-    }
-    
-    return { queries };
+    return results;
   };
 
   const handleImport = () => {
     if (!textInput.trim()) return;
     
     const parsed = parseText(textInput);
-    if (parsed.queries.length > 0) {
-      setImportedData(parsed);
+    if (parsed.length > 0) {
+      setQueries(parsed);
     } else {
       alert('Could not find any queries. Try pasting different format.');
     }
   };
 
   const handleClear = () => {
-    setImportedData(null);
+    setQueries([]);
     setTextInput('');
+  };
+
+  const handleSelectQuery = (query: ParsedQuery) => {
+    onSelectQuery(query.query);
   };
 
   return (
@@ -123,7 +110,7 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
       </div>
 
       <div className="px-6 py-4 space-y-4">
-        {!importedData ? (
+        {queries.length === 0 ? (
           <>
             <div>
               <textarea
@@ -147,18 +134,18 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
           <>
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="text-sm text-text-secondary">
-                <span className="font-medium text-primary">{importedData.queries.length}</span> gap queries found
+                <span className="font-medium text-primary">{queries.length}</span> gap queries found
               </p>
             </div>
 
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {importedData.queries.map((q, i) => (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {queries.map((q, i) => (
                 <button
                   key={i}
-                  onClick={() => onSelectQuery(q.query)}
-                  className="w-full text-left p-3 border border-border rounded-lg hover:border-secondary hover:bg-secondary/5 transition-colors"
+                  onClick={() => handleSelectQuery(q)}
+                  className="w-full text-left p-4 border border-border rounded-lg hover:border-secondary hover:bg-secondary/5 transition-colors"
                 >
-                  <p className="text-sm text-primary font-medium line-clamp-2">
+                  <p className="text-sm text-primary font-medium">
                     {q.query}
                   </p>
                 </button>
