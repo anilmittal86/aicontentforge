@@ -1,18 +1,67 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrandGrounding, ContextGrounding, KeywordTag } from '@/types';
 import BrandGroundingForm from '@/components/BrandGroundingForm';
 import ContextGroundingForm from '@/components/ContextGroundingForm';
 import KeywordInput from '@/components/KeywordInput';
 import ContentGenerator from '@/components/ContentGenerator';
 import GapAnalysisImport from '@/components/GapAnalysisImport';
+import QueryImport from '@/components/QueryImport';
+import QueryList from '@/components/QueryList';
+import { queryStore, QueryData } from '@/lib/queries';
 
 export default function Home() {
   const [brand, setBrand] = useState<BrandGrounding | null>(null);
   const [context, setContext] = useState<ContextGrounding | null>(null);
   const [keywords, setKeywords] = useState<KeywordTag[]>([]);
   const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleQueryImport = (queries: QueryData[]) => {
+    queryStore.addQueries(queries);
+    setRefreshKey(k => k + 1);
+  };
+
+  const handleGapImport = (data: any) => {
+    const gapQueries: QueryData[] = (data.queries || []).map((q: any) => ({
+      id: crypto.randomUUID(),
+      query: q.query || '',
+      source: 'gap' as const,
+      missingOn: q.missingOn,
+      competitors: data.competitors || [],
+      createdAt: new Date().toISOString(),
+    }));
+    queryStore.addQueries(gapQueries);
+    setRefreshKey(k => k + 1);
+  };
+
+  const handleQuerySelect = (query: QueryData) => {
+    queryStore.markAsUsed(query.id);
+    
+    setContext(prev => ({
+      content_type: prev?.content_type || 'Blog post',
+      platform: prev?.platform || 'Company blog',
+      goal: query.query,
+      word_count_min: prev?.word_count_min || 800,
+      word_count_max: prev?.word_count_max || 1500,
+      reader_profile: `People searching: "${query.query}"${query.position ? ` (Position: ${query.position})` : ''}`,
+      reader_belief: '',
+      key_objection: '',
+      argument_structure: prev?.argument_structure || { hook: '', problem: '', evidence: '', solution: '', cta: '' },
+      tone_notes: '',
+      avoid: '',
+    }));
+
+    if (query.competitors && query.competitors.length > 0) {
+      setKeywords(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), name: `vs ${query.competitors!.join(' vs ')}`, priority: 'secondary' }
+      ]);
+    }
+
+    setRefreshKey(k => k + 1);
+  };
 
   return (
     <div className="min-h-screen">
@@ -69,19 +118,11 @@ export default function Home() {
                 keywords={keywords}
                 onChange={setKeywords}
               />
-              <GapAnalysisImport 
-                onImport={(data) => {
-                  console.log('Imported gap analysis:', data);
-                  if (data.queries.length > 0) {
-                    const firstQuery = data.queries[0];
-                    setContext(prev => ({
-                      ...prev!,
-                      goal: firstQuery.query,
-                      reader_profile: `People searching for: ${firstQuery.query}`,
-                    }));
-                  }
-                }}
-              />
+              
+              <QueryImport onImport={(queries: any[]) => handleQueryImport(queries)} />
+              <GapAnalysisImport onImport={(data: any) => handleGapImport(data)} />
+              
+              <QueryList key={refreshKey} onSelect={handleQuerySelect} />
             </div>
             <div className="lg:col-span-2">
               <ContentGenerator 
@@ -108,13 +149,12 @@ export default function Home() {
 }
 
 function SavedContentView() {
-  const [savedContents, setSavedContents] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const { storage } = require('@/lib/storage');
-      return storage.getGeneratedContents();
-    }
-    return [];
-  });
+  const [savedContents, setSavedContents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const { storage } = require('@/lib/storage');
+    setSavedContents(storage.getGeneratedContents());
+  }, []);
 
   const handleDelete = (id: string) => {
     const { storage } = require('@/lib/storage');
