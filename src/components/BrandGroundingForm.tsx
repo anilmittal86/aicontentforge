@@ -28,6 +28,7 @@ export default function BrandGroundingForm({ onSave, onSelect, selectedBrand }: 
   const [selectedId, setSelectedId] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
 
   useEffect(() => {
     setSavedBrands(storage.getBrandGroundings());
@@ -44,7 +45,7 @@ export default function BrandGroundingForm({ onSave, onSelect, selectedBrand }: 
     }
   }, [selectedBrand]);
 
-  const handleUrlChange = (url: string) => {
+  const handleUrlChange = async (url: string) => {
     setUrlInput(url);
     
     if (!url) return;
@@ -58,17 +59,55 @@ export default function BrandGroundingForm({ onSave, onSelect, selectedBrand }: 
       brandName = url.split('.')[0];
     }
     
-    setForm({
-      ...form,
-      brand_name: brandName,
-      what_we_do: 'Providing products/services for customers',
-      target_reader: 'Your target audience',
-      our_differentiator: 'What makes you unique',
-      voice: 'Professional, helpful, clear',
-      we_sound_like: 'Write like a knowledgeable expert',
-      we_never_say: 'Generic marketing jargon',
-      proprietary_terms: '',
-    });
+    const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+    
+    if (!normalizedUrl.match(/^https?:\/\/.+/)) {
+      return;
+    }
+    
+    setIsLoadingUrl(true);
+    
+    try {
+      const response = await fetch('/api/extract-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: normalizedUrl }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setForm({
+          ...form,
+          ...data,
+        });
+      } else {
+        setForm({
+          ...form,
+          brand_name: brandName,
+          what_we_do: 'Providing products/services for customers',
+          target_reader: 'Your target audience',
+          our_differentiator: '',
+          voice: 'Professional, helpful, clear',
+          we_sound_like: '',
+          we_never_say: 'Generic marketing jargon',
+          proprietary_terms: '',
+        });
+      }
+    } catch {
+      setForm({
+        ...form,
+        brand_name: brandName,
+        what_we_do: 'Providing products/services for customers',
+        target_reader: 'Your target audience',
+        our_differentiator: '',
+        voice: 'Professional, helpful, clear',
+        we_sound_like: '',
+        we_never_say: 'Generic marketing jargon',
+        proprietary_terms: '',
+      });
+    }
+    
+    setIsLoadingUrl(false);
   };
 
   const handleChange = (field: keyof BrandGrounding, value: string) => {
@@ -133,15 +172,26 @@ export default function BrandGroundingForm({ onSave, onSelect, selectedBrand }: 
         <div className="px-6 pb-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Company Website (auto-fills brand info)
+              Company Website (auto-fills from website)
             </label>
-            <input
-              type="url"
-              value={urlInput}
-              onChange={(e) => handleUrlChange(e.target.value)}
-              placeholder="https://yourcompany.com"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-            />
+            <div className="relative">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                placeholder="https://yourcompany.com"
+                disabled={isLoadingUrl}
+                className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:bg-slate-50"
+              />
+              {isLoadingUrl && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <svg className="animate-spin h-4 w-4 text-slate-400" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
