@@ -113,7 +113,10 @@ IMPORTANT INSTRUCTIONS:
 7. Write in the brand's voice as specified
 8. Target approximately ${effectiveContext.word_count_min || 800}-${effectiveContext.word_count_max || 1500} words
 9. Address the reader's current belief and key objection
-10. Follow the argument structure provided`;
+10. Follow the argument structure provided
+11. WRITE IN A HUMAN, PROFESSIONAL TONE - avoid robotic, formulaic AI-sounding language
+12. Use varied sentence structures, natural transitions, and conversational yet expert phrasing
+13. Avoid generic AI phrases like "in today's rapidly evolving landscape", "let's dive in", "in conclusion", etc.`;
 
     const userPrompt = `Write a ${effectiveContext.content_type?.toLowerCase() || 'blog post'} for ${effectiveContext.platform || 'Company blog'}. 
 
