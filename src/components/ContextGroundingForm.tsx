@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ContextGrounding, ArgumentStructure, CONTENT_TYPES, PLATFORMS } from '@/types';
 
 interface ContextGroundingFormProps {
@@ -33,6 +33,12 @@ export default function ContextGroundingForm({ onSave, onChange, initialContext 
   const [form, setForm] = useState<ContextGrounding>(initialContext || emptyContext);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    if (initialContext) {
+      setForm(initialContext);
+    }
+  }, [initialContext]);
 
   const handleChange = (field: keyof ContextGrounding, value: string | number) => {
     const updated = { ...form, [field]: value };
