@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { BrandGrounding, ContextGrounding, KeywordTag } from '@/types';
 import BrandGroundingForm from '@/components/BrandGroundingForm';
 import ContextGroundingForm from '@/components/ContextGroundingForm';
@@ -11,9 +12,17 @@ import { useAuth } from '@/components/AuthContext';
 
 function AppContent() {
   const { user, signOut, loading } = useAuth();
+  const router = useRouter();
   const [brand, setBrand] = useState<BrandGrounding | null>(null);
   const [context, setContext] = useState<ContextGrounding | null>(null);
   const [keywords, setKeywords] = useState<KeywordTag[]>([]);
+  const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create');
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -26,8 +35,6 @@ function AppContent() {
   if (!user) {
     return null;
   }
-
-  const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create');
 
   const handleSelectQuery = (query: string) => {
     const defaults = {
