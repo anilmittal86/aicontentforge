@@ -7,8 +7,10 @@ import ContextGroundingForm from '@/components/ContextGroundingForm';
 import KeywordInput from '@/components/KeywordInput';
 import ContentGenerator from '@/components/ContentGenerator';
 import ContentGap from '@/components/ContentGap';
+import { useAuth } from '@/components/AuthContext';
 
-export default function Home() {
+function AppContent() {
+  const { user, signOut } = useAuth();
   const [brand, setBrand] = useState<BrandGrounding | null>(null);
   const [context, setContext] = useState<ContextGrounding | null>(null);
   const [keywords, setKeywords] = useState<KeywordTag[]>([]);
@@ -45,28 +47,15 @@ export default function Home() {
               </svg>
               <h1 className="text-xl font-bold">AI Content Forge</h1>
             </div>
-            <nav className="flex gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-white/80">{user?.email}</span>
               <button
-                onClick={() => setActiveTab('create')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'create' 
-                    ? 'bg-secondary text-white' 
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
+                onClick={() => signOut()}
+                className="px-3 py-1 text-sm bg-white/10 hover:bg-white/20 rounded-lg"
               >
-                Create Content
+                Sign Out
               </button>
-              <button
-                onClick={() => setActiveTab('saved')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'saved' 
-                    ? 'bg-secondary text-white' 
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                Saved Content
-              </button>
-            </nav>
+            </div>
           </div>
         </div>
       </header>
@@ -117,22 +106,7 @@ export default function Home() {
 }
 
 function SavedContentView() {
-  const [savedContents, setSavedContents] = useState<any[]>([]);
-
-  useState(() => {
-    if (typeof window !== 'undefined') {
-      const { storage } = require('@/lib/storage');
-      setSavedContents(storage.getGeneratedContents());
-    }
-  });
-
-  const handleDelete = (id: string) => {
-    if (typeof window !== 'undefined') {
-      const { storage } = require('@/lib/storage');
-      storage.deleteGeneratedContent(id);
-      setSavedContents(storage.getGeneratedContents());
-    }
-  };
+  const [savedContents] = useState<any[]>([]);
 
   if (savedContents.length === 0) {
     return (
@@ -148,29 +122,25 @@ function SavedContentView() {
         <div key={content.id} className="bg-white rounded-lg shadow-sm border border-border p-6">
           <h3 className="font-semibold text-primary mb-2">{content.title}</h3>
           <p className="text-sm text-text-secondary mb-4 line-clamp-3">
-            {content.content.substring(0, 200)}...
+            {content.content?.substring(0, 200)}...
           </p>
           <div className="flex items-center justify-between">
             <span className="text-xs text-text-secondary">
               {content.created_at ? new Date(content.created_at).toLocaleDateString() : 'Unknown date'}
             </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => navigator.clipboard.writeText(content.content)}
-                className="px-3 py-1 text-sm text-secondary hover:bg-secondary/10 rounded"
-              >
-                Copy
-              </button>
-              <button
-                onClick={() => handleDelete(content.id)}
-                className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
-              >
-                Delete
-              </button>
-            </div>
+            <button
+              onClick={() => navigator.clipboard.writeText(content.content)}
+              className="px-3 py-1 text-sm text-secondary hover:bg-secondary/10 rounded"
+            >
+              Copy
+            </button>
           </div>
         </div>
       ))}
     </div>
   );
+}
+
+export default function Home() {
+  return <AppContent />;
 }
