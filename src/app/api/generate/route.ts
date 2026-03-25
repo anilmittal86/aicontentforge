@@ -104,40 +104,28 @@ CONTEXT:
 - Avoid: ${effectiveContext.avoid || 'Not specified'}
 
 IMPORTANT INSTRUCTIONS:
-1. Generate data-rich content with statistics, data points, and facts
+1. Generate data-rich content with specific statistics, data points, and facts from 2024-2026
 2. ALWAYS include inline citations with hyperlinks to high-authority sources using markdown link format [source text](URL)
 3. Every claim should be backed by data from credible sources
-4. Include real statistics - SPECIFIC numbers and percentages, preferably from 2024-2026
-5. Use descriptive subheadings (H2) that clearly summarize each section - avoid generic headings like "Introduction" or "Overview"
-6. Keep paragraphs SHORT - maximum 3-4 sentences per paragraph
-7. Include a "Sources" section at the end listing all references with URLs
-8. Include primary keyword in the first paragraph naturally
-9. Target approximately ${effectiveContext.word_count_min || 800}-${effectiveContext.word_count_max || 1500} words
-10. Address the reader's current belief and key objection
-11. Follow the argument structure provided
-12. End with a clear, actionable call-to-action - tell the reader exactly what to do next
-13. WRITE IN A HUMAN, PROFESSIONAL TONE - avoid robotic, formulaic AI-sounding language
-14. Use varied sentence structures, natural transitions, and conversational yet expert phrasing
-15. Avoid generic AI phrases like "in today's rapidly evolving landscape", "let's dive in", "in conclusion", "it's important to note", etc.
-16. Make every sentence add value - no filler or fluff
-17. Use bullet points sparingly and only for genuine lists - not to break up text`;
+4. Use specific numbers and percentages - not vague statements like "many companies" or "a significant portion"
+5. Include a "Sources" section at the end listing all references with URLs
+6. Target approximately ${effectiveContext.word_count_min || 800}-${effectiveContext.word_count_max || 1500} words
+7. End with a clear, actionable call-to-action
+8. WRITE IN A HUMAN, PROFESSIONAL TONE - avoid robotic, formulaic AI-sounding language
+9. Use varied sentence structures and natural transitions
+10. Avoid generic AI phrases like "in today's rapidly evolving landscape", "let's dive in", "in conclusion", "it's important to note", etc.
+11. Make every sentence add value - no filler or fluff
+12. Let the content structure flow naturally based on the topic - don't force a rigid format`;
 
     const userPrompt = `Write a ${effectiveContext.content_type?.toLowerCase() || 'blog post'} for ${effectiveContext.platform || 'Company blog'}. 
 
 Topic: ${effectiveContext.goal}
 
-Requirements:
-- Start with a compelling hook (first sentence should grab attention)
-- First paragraph should naturally include the primary keyword
-- Use clear H2 subheadings for each main point - make them descriptive and specific
-- Present the problem/insight in one section, evidence in another, solution in another
-- Include specific statistics and numbers (not vague statements like "many companies")
-- Write short paragraphs (3-4 sentences max)
-- End with a clear, actionable CTA telling the reader exactly what to do next
+Focus on making this data-rich and valuable. Include specific statistics with sources. Let the content structure flow naturally based on what this topic needs.
 
 Target word count: ${effectiveContext.word_count_min || 800}-${effectiveContext.word_count_max || 1500} words
 
-Keywords to naturally incorporate: ${primaryKeywords || 'none specified'}`;
+Primary keyword (include naturally if relevant): ${primaryKeywords || 'none'}`;
 
     let content = '';
     let sources: Source[] = [];
