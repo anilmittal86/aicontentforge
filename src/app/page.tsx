@@ -10,10 +10,23 @@ import ContentGap from '@/components/ContentGap';
 import { useAuth } from '@/components/AuthContext';
 
 function AppContent() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const [brand, setBrand] = useState<BrandGrounding | null>(null);
   const [context, setContext] = useState<ContextGrounding | null>(null);
   const [keywords, setKeywords] = useState<KeywordTag[]>([]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create');
 
   const handleSelectQuery = (query: string) => {
