@@ -92,7 +92,16 @@ BRAND GROUNDING:
 - Proprietary terms: ${effectiveBrand.proprietary_terms || 'Not specified'}
 
 CONTEXT:
-KEYWORDS: Primary: ${primaryKeywords || 'None specified'}. Secondary: ${secondaryKeywords || 'None specified'}
+- Content type: ${effectiveContext.content_type || 'Blog post'}
+- Platform: ${effectiveContext.platform || 'Company blog'}
+- Goal: ${effectiveContext.goal || 'Not specified'}
+- Word count: ${effectiveContext.word_count_min || 800}-${effectiveContext.word_count_max || 1500}
+- Reader profile: ${effectiveContext.reader_profile || 'Not specified'}
+- Current belief: ${effectiveContext.reader_belief || 'Not specified'}
+- Key objection: ${effectiveContext.key_objection || 'Not specified'}
+- Argument structure: ${Object.values(effectiveContext.argument_structure || {}).join(' | ') || 'Not specified'}
+- Tone notes: ${effectiveContext.tone_notes || 'Not specified'}
+- Avoid: ${effectiveContext.avoid || 'Not specified'}
 
 IMPORTANT INSTRUCTIONS:
 1. Generate data-rich content with statistics, data points, and facts
