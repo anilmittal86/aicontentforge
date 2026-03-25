@@ -68,15 +68,15 @@ export default function ContextGroundingForm({ onSave, onChange, initialContext 
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-border">
+    <div className="bg-white rounded-lg shadow-sm border border-teal-200">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-primary">Context</h2>
+          <h2 className="text-lg font-semibold text-teal-700">Context</h2>
           {form.content_type && (
-            <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-xs rounded">
+            <span className="px-2 py-0.5 bg-teal-100 text-teal-700 text-xs rounded">
               {form.content_type} • {form.platform}
             </span>
           )}

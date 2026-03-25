@@ -133,10 +133,10 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-border">
-      <div className="px-6 py-4 border-b border-border">
-        <h2 className="text-lg font-semibold text-primary">Content Gap</h2>
-        <p className="text-sm text-text-secondary mt-1">Import AI visibility report to find content opportunities</p>
+    <div className="bg-white rounded-lg shadow-sm border border-blue-200">
+      <div className="px-6 py-4 border-b border-blue-100">
+        <h2 className="text-lg font-semibold text-blue-700">Content Gap</h2>
+        <p className="text-sm text-blue-500 mt-1">Import AI visibility report to find content opportunities</p>
       </div>
 
       <div className="px-6 py-4 space-y-4">
