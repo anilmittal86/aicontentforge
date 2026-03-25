@@ -17,69 +17,99 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
 
   const parseText = (text: string): ParsedQuery[] => {
     const results: ParsedQuery[] = [];
+    const seen = new Set<string>();
     
-    // Pattern 1: "Query text" — Competitor shown instead
-    // Matches text between quotes followed by dash and competitors
-    const quoteDashPattern = /"([^"]+)[""]?\s*[-–—]\s*([^,]+?)\s*shown instead/gi;
+    const cleanText = text.replace(/\s+/g, ' ').trim();
+    
+    // Pattern 1: "quoted text" — competitor shown instead
+    const quotePattern = /"([^"]{10,200})[""]?\s*[-–—]\s*([^,]+?)(?:\s+shown\s+instead)?/gi;
     let match;
-    while ((match = quoteDashPattern.exec(text)) !== null) {
+    while ((match = quotePattern.exec(cleanText)) !== null) {
       const query = match[1].trim();
-      const comps = match[2].split(',').map(c => c.trim()).filter(c => c);
-      results.push({ query, competitors: comps });
-    }
-    
-    // Pattern 2: "Query text" — Competitor1, Competitor2 shown instead
-    const multiDashPattern = /"([^"]+)[""]?\s*[-–—]\s*(.+?)\s*shown instead/gi;
-    while ((match = multiDashPattern.exec(text)) !== null) {
-      const query = match[1].trim();
-      const competitorPart = match[2];
-      const comps = competitorPart.split(',').map(c => c.trim()).filter(c => c);
-      if (comps.length > 1 || (results.length === 0 || results[results.length - 1].query !== query)) {
-        if (!results.find(r => r.query === query)) {
-          results.push({ query, competitors: comps });
-        }
+      const comps = match[2].split(',').map(c => c.trim().replace(/\s+shown\s+instead.*/i, '')).filter(c => c && c.length > 1);
+      if (query && !seen.has(query.toLowerCase())) {
+        seen.add(query.toLowerCase());
+        results.push({ query, competitors: comps });
       }
     }
     
-    // Pattern 3: Just quoted text (standalone queries)
+    // Pattern 2: Standalone quoted text (without dash)
     if (results.length === 0) {
-      const standaloneQuotes = /"([^"]+)[""]?/g;
-      while ((match = standaloneQuotes.exec(text)) !== null) {
+      const standaloneQuotePattern = /"([^"]{15,300})[""]/g;
+      while ((match = standaloneQuotePattern.exec(cleanText)) !== null) {
         const query = match[1].trim();
-        if (query.length > 10 && !results.find(r => r.query === query)) {
+        if (query && query.length > 15 && !seen.has(query.toLowerCase())) {
+          seen.add(query.toLowerCase());
           results.push({ query, competitors: [] });
         }
       }
     }
     
-    // Pattern 4: Lines starting with common query patterns
+    // Pattern 3: Lines that look like search queries (question marks, "best", "list of", "how to", etc.)
     if (results.length === 0) {
-      const lines = text.split(/\n/);
+      const lines = cleanText.split(/[.]\s*(?=[A-Z])|[;\n]/);
+      const queryIndicators = [
+        /^(what|how|why|which|when|where|can|should|is|are|do|does)\b/i,
+        /\b(list of|best|top|compare|alternatives|review|vs|versus)\b/i,
+        /\b(tools|platforms|software|services|companies|providers)\b/i,
+        /\b(recommendations?|guide|tips|features|pricing)\b/i,
+        /\?$/,
+      ];
+      
       for (const line of lines) {
         const trimmed = line.trim();
-        const queryPatterns = [
-          /^(List of .+?)[-–—,\s]/i,
-          /^(Best .+?)[-–—,\s]/i,
-          /^(Compare .+?)[-–—,\s]/i,
-          /^(Alternatives to .+?)[-–—,\s]/i,
-          /^(Affordable .+?)[-–—,\s]/i,
-          /^(Top .+?)[-–—,\s]/i,
-        ];
+        if (trimmed.length < 15 || trimmed.length > 250) continue;
         
-        for (const pattern of queryPatterns) {
-          const m = trimmed.match(pattern);
-          if (m) {
-            const query = m[1].trim();
-            if (query.length > 10 && !results.find(r => r.query === query)) {
-              results.push({ query, competitors: [] });
-              break;
-            }
+        // Check if line looks like a query
+        const isQuery = queryIndicators.some(pattern => pattern.test(trimmed));
+        
+        if (isQuery && !seen.has(trimmed.toLowerCase())) {
+          seen.add(trimmed.toLowerCase());
+          results.push({ query: trimmed, competitors: [] });
+        }
+      }
+    }
+    
+    // Pattern 4: Extract phrases after specific keywords
+    if (results.length === 0) {
+      const keywords = [
+        'query:', 'search:', 'question:', 'topic:',
+        'for:', 'about:', 'on:', 
+      ];
+      
+      for (const kw of keywords) {
+        const kwPattern = new RegExp(kw + '\\s*([^.]{10,200})', 'gi');
+        while ((match = kwPattern.exec(cleanText)) !== null) {
+          const query = match[1].trim();
+          if (query && !seen.has(query.toLowerCase())) {
+            seen.add(query.toLowerCase());
+            results.push({ query, competitors: [] });
           }
         }
       }
     }
     
-    return results;
+    // Pattern 5: If nothing else, treat each line as a potential query
+    if (results.length === 0) {
+      const lines = cleanText.split(/[;\n]/);
+      for (const line of lines) {
+        const cleaned = line.replace(/^[-\d.)\s]+/, '').trim();
+        if (cleaned.length > 20 && cleaned.length < 200 && !seen.has(cleaned.toLowerCase())) {
+          // Skip lines that are just competitor names
+          if (!/^(Profound|Semrush|Otterly|Yext|Athena|Peec|Passionfruit|Akupara)/i.test(cleaned)) {
+            seen.add(cleaned.toLowerCase());
+            results.push({ query: cleaned, competitors: [] });
+          }
+        }
+      }
+    }
+    
+    // Filter out any that are just competitor names
+    const competitorNames = ['profound', 'semrush', 'otterly', 'yext', 'athena', 'peec', 'passionfruit', 'akupara', 'trackerly', 'nightwatch', 'authoritas', 'surva'];
+    return results.filter(r => {
+      const q = r.query.toLowerCase();
+      return !competitorNames.some(c => q === c || q.startsWith(c + ' ') || q.endsWith(' ' + c));
+    });
   };
 
   const handleImport = () => {
@@ -89,17 +119,17 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
     if (parsed.length > 0) {
       setQueries(parsed);
     } else {
-      alert('Could not find any queries. Try pasting different format.');
+      // If still nothing, just use the whole text as one query
+      const singleQuery = textInput.trim().replace(/\s+/g, ' ').substring(0, 200);
+      if (singleQuery) {
+        setQueries([{ query: singleQuery, competitors: [] }]);
+      }
     }
   };
 
   const handleClear = () => {
     setQueries([]);
     setTextInput('');
-  };
-
-  const handleSelectQuery = (query: ParsedQuery) => {
-    onSelectQuery(query.query);
   };
 
   return (
@@ -117,7 +147,7 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 rows={8}
-                placeholder="Paste your AI visibility gap report here..."
+                placeholder="Paste your AI visibility gap report here, or any text containing search queries..."
                 className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary resize-none"
               />
             </div>
@@ -142,7 +172,7 @@ export default function ContentGap({ onSelectQuery }: ContentGapProps) {
               {queries.map((q, i) => (
                 <button
                   key={i}
-                  onClick={() => handleSelectQuery(q)}
+                  onClick={() => onSelectQuery(q.query)}
                   className="w-full text-left p-4 border border-border rounded-lg hover:border-secondary hover:bg-secondary/5 transition-colors"
                 >
                   <p className="text-sm text-primary font-medium">
